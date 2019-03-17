@@ -1,0 +1,205 @@
+#include"lurk_pro.h"
+#include<ncurses.h>
+#include<sys/socket.h>
+#include<sys/types.h>
+#include<netinet/ip.h>
+#include<arpa/inet.h>
+#include<netdb.h>
+#include<pthread.h>
+#include<string.h>
+#include<stdlib.h>
+#include<stdio.h> 
+#include<signal.h>
+#include<unistd.h>
+char buff[1024];
+char buff2[1024];
+char name[32];
+//type 13
+void readConnection(struct Connection *P, struct receive_info *skt)
+{
+	read(skt->sockfd, &P->Conn_Room_num,2);
+	read(skt->sockfd, &P->Conn_Room_name,32);
+	read(skt->sockfd, &P->Conn_Room_des_len,2);
+	read(skt->sockfd, &P->Conn_Room_des,P->Conn_Room_des_len);
+}
+
+// type 11
+void readGame(struct Game *P, struct receive_info *skt)
+{
+	read(skt->sockfd, &P->Int_points,2);
+	read(skt->sockfd, &P->Stat_limit,2);
+	read(skt->sockfd, &P->Game_Des_len,2);
+	read(skt->sockfd, &P->Game_des,P->Game_Des_len); 
+
+
+
+}
+
+// type 10
+void readCharacter(struct Character *P, struct receive_info *skt)
+{
+	
+	read(skt->sockfd, &P->Char_Name,32);
+	read(skt->sockfd, &P->Flags,1);
+	read(skt->sockfd, &P->Attack,2);
+	read(skt->sockfd, &P->Defense,2);
+	read(skt->sockfd, &P->Regen,2);
+	read(skt->sockfd, &P->Health,2);
+	read(skt->sockfd, &P->Gold,2);
+	read(skt->sockfd, &P->Curr_Room_Num,2);
+	read(skt->sockfd, &P->Char_Des_len,2);
+	read(skt->sockfd, &P->Char_des,P->Char_Des_len);
+
+}
+
+// type 9
+void readRoom(struct Room *P, struct receive_info *skt)
+{
+	read(skt->sockfd, &P->Room_num,2);
+	read(skt->sockfd, &P->Room_name,32);
+	read(skt->sockfd, &P->Room_des_len,2);
+	read(skt->sockfd, &P->Room_des, P->Room_des_len);
+
+
+}
+
+//type 8
+
+void readAccept(struct Accept *P, struct receive_info *skt)
+{
+	read(skt->sockfd, &P->Accepted,1);
+
+}
+
+//type 7
+void readError(struct Error *P, struct receive_info *skt)
+{
+	read(skt->sockfd, &P->Err_code,1);
+	read(skt->sockfd, &P->Err_Message_len,2);
+	read(skt->sockfd, &P->Err_Message,P->Err_Message_len);
+}
+
+//type 1
+void readMessage(struct Message *P, struct receive_info *skt)
+{
+	read(skt->sockfd, &P->Message_Len,2);
+	read(skt->sockfd, &P->Rec_Name,32);
+	read(skt->sockfd, &P->Sen_Name,32);
+	read(skt->sockfd, &P->The_Message,P->Message_Len);
+}
+
+//_____________________________________________________________________________________________
+
+//type 12
+void writeLeave(struct Leave *P, struct receive_info *skt)
+{
+
+}
+
+//type 10
+
+void writeCharacter(struct Character *P, struct receive_info *skt)
+{
+	int join;
+	char ans[1];
+	wprintw(skt->bottom, "Charactar_Name:");
+	wscanw(skt->bottom,"%s",&P->Char_Name);
+	write(skt->sockfd, &P->Char_Name,32);
+	strcpy(name,P->Char_Name);
+	join = 64 & P->Flags;
+	wprintw(skt->bottom, "Join Battle(y/n):");
+	wscanw(skt->bottom,"%s",ans);
+	if(ans=="y")
+		
+        write(skt->sockfd, &P->Flags,1);
+
+	wprintw(skt->bottom, "Charactar_Attack:");
+	wscanw(skt->bottom,"%d",&P->Attack);
+        write(skt->sockfd, &P->Attack,2);
+
+	wprintw(skt->bottom, "Charactar_Defense:");
+	wscanw(skt->bottom,"%d",&P->Defense);
+        write(skt->sockfd, &P->Defense,2);
+
+	wprintw(skt->bottom, "Charactar_Regen:");
+	wscanw(skt->bottom,"%d",&P->Regen);
+        write(skt->sockfd, &P->Regen,2);
+
+	write(skt->sockfd, &P->Health,2);
+	write(skt->sockfd, &P->Gold,2);
+        write(skt->sockfd, &P->Curr_Room_Num,2);
+
+	wprintw(skt->bottom, "Charactar_Description:");
+        wgetstr(skt->bottom, buff);
+
+	strcpy(P->Char_des,buff);
+	P->Char_Des_len = strlen(buff);
+	write(skt->sockfd, &P->Char_Des_len,2);
+        write(skt->sockfd,&P->Char_des,P->Char_Des_len );
+	wrefresh(skt->bottom);
+
+}
+
+// type 8
+void writeAccept(struct Accept *P, struct receive_info *skt)
+{
+        //write(skt->sockfd, &P->Accepted,1);
+
+}
+// type 6
+void writeStart(struct Start *P, struct receive_info *skt)
+{
+
+}
+
+// type 5
+void writeLoot(struct Loot *P, struct receive_info *skt)
+{
+	wprintw(skt->bottom, "Character name you want to loot:");
+	wscanw(skt->bottom,"%s",&P->Loot_Name);
+	write(skt->sockfd, &P->Loot_Name,32);
+}
+
+// type 4
+void writePvPFight(struct PvPFight *P, struct receive_info *skt)
+{
+	wprintw(skt->bottom, "Character name you want to fight:");
+	wscanw(skt->bottom,"%s",&P->Fighter_Name);
+	write(skt->sockfd, &P->Fighter_Name,32);
+}
+
+// type 3
+void writeFight(struct Fight *P, struct receive_info *skt)
+{
+
+}
+
+// type 2
+void writeChangeRoom(struct ChangeRoom *P, struct receive_info *skt)
+{
+	wprintw(skt->bottom, "Room number you want to change to:");
+	wscanw(skt->bottom,"%d",&P->change_room);
+        write(skt->sockfd, &P->change_room,2);
+}
+
+//type 1
+void writeMessage(struct Message *P, struct receive_info *skt)
+{
+	wprintw(skt->bottom, "Recipient_Name:");
+        wscanw(skt->bottom,"%s",&P->Rec_Name);
+
+	wprintw(skt->bottom, "Message:");
+	wgetstr(skt->bottom, buff2);
+
+	strcpy(P->The_Message,buff2);
+        P->Message_Len = strlen(buff2);
+
+	write(skt->sockfd, &P->Message_Len,2);
+	write(skt->sockfd, &P->Rec_Name,32);
+
+	strcpy(P->Sen_Name, name);
+        write(skt->sockfd,&P->Sen_Name,32);
+	
+	write(skt->sockfd, &P->The_Message,P->Message_Len);
+
+}	
